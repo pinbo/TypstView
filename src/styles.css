@@ -91,7 +91,8 @@ button[aria-pressed="true"] {
   color: var(--accent);
 }
 
-#toolbar {
+#toolbar,
+#formatbar {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -353,3 +354,291 @@ button[aria-pressed="true"] {
 .typ-error { color: var(--error); text-decoration: underline wavy; }
 /* Tokens inside a heading keep the heading colour. */
 .typ-heading :not(.typ-error) { color: inherit; }
+
+#formatbar {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+body:has(#panes[data-view="preview"]) #formatbar {
+  display: none;
+}
+
+#formatbar button {
+  min-width: 28px;
+}
+
+select {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 2px 4px;
+}
+
+/* ---------------------------------------------------------------- Dialogs */
+
+dialog {
+  width: min(480px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--chrome);
+  color: var(--text);
+  box-shadow: 0 12px 40px #0006;
+}
+
+dialog.wide {
+  width: min(760px, calc(100vw - 40px));
+}
+
+dialog::backdrop {
+  background: #0006;
+}
+
+dialog form {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 42px);
+}
+
+dialog h2 {
+  margin: 0;
+  padding: 12px 16px 8px;
+  font-size: 15px;
+}
+
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 2px 16px;
+  overflow: auto;
+}
+
+.dialog-body > *,
+.dialog-body details > * {
+  flex-shrink: 0;
+}
+
+.dialog-body [hidden] {
+  display: none !important;
+}
+
+.dialog-body div:not([class]),
+.dialog-body details:not(.palette) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dialog-body details:not([open]) > :not(summary) {
+  display: none;
+}
+
+dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px 12px;
+}
+
+dialog footer button,
+button.outline {
+  border-color: var(--line);
+  background: var(--bg);
+}
+
+dialog footer button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.field > span:first-child {
+  font-weight: 600;
+}
+
+.field small,
+.hint,
+.kept {
+  margin: 0;
+  color: var(--muted);
+}
+
+.kept {
+  overflow-wrap: anywhere;
+}
+
+dialog input[type="text"],
+dialog input[type="number"],
+dialog textarea {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 4px 7px;
+  width: 100%;
+  min-width: 0;
+}
+
+dialog textarea {
+  resize: vertical;
+}
+
+dialog textarea.code,
+.entry-list code {
+  font-family: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.with-button {
+  display: flex;
+  gap: 6px;
+}
+
+.dialog-error {
+  margin: 0;
+  padding: 0 16px;
+  color: var(--error);
+  white-space: pre-wrap;
+}
+
+.dialog-body .dialog-error {
+  padding: 0;
+}
+
+.dialog-error:empty {
+  display: none;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.palette-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 5px;
+}
+
+.palette button {
+  min-width: 34px;
+}
+
+.dialog-body .math-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 54px;
+  max-height: 180px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  /* The rendered page is white in both appearances. */
+  background: #fff;
+}
+
+.math-preview img {
+  max-width: 100%;
+  zoom: 1.5;
+}
+
+.grid-scroll {
+  overflow: auto;
+  max-height: 45vh;
+  min-height: 90px;
+}
+
+.grid-editor {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.grid-editor th,
+.grid-editor td {
+  padding: 1px;
+  min-width: 90px;
+  vertical-align: top;
+}
+
+.grid-editor .widths input {
+  color: var(--muted);
+  text-align: center;
+}
+
+.grid-editor .header-row textarea {
+  font-weight: 700;
+}
+
+.grid-editor textarea.code {
+  border-style: dashed;
+}
+
+.symbol-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 4px !important;
+  height: 45vh;
+  align-content: start;
+  overflow: auto;
+}
+
+.symbol-grid button {
+  font-size: 18px;
+  height: 36px;
+  padding: 0;
+}
+
+.entry-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 30vh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg);
+}
+
+.entry-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ---------------------------------------------------------------- Assistance */
+
+.cm-editor .cm-tooltip-autocomplete ul li[aria-selected] {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.hover-help {
+  margin: 0;
+  padding: 5px 9px;
+  max-width: 460px;
+  white-space: pre-wrap;
+}

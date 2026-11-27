@@ -48,6 +48,27 @@ pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
     result.map_err(fail)
 }
 
+/// `target` written relative to the document's folder, with `/` separators.
+/// Typst cannot reach files outside that folder.
+pub fn relative_to_document(document: &Path, target: &Path) -> Result<String, String> {
+    let real = |p: &Path| fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
+    let folder = document.parent().ok_or("the document has no folder")?;
+    let relative = real(target)
+        .strip_prefix(real(folder))
+        .map(Path::to_path_buf)
+        .map_err(|_| {
+            format!(
+                "Typst can only use files inside the document's folder ({}). Copy the file there first.",
+                folder.display()
+            )
+        })?;
+    let parts: Vec<_> = relative
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy())
+        .collect();
+    Ok(parts.join("/"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -62,6 +83,14 @@ mod tests {
         assert_eq!(read_text(&path).unwrap(), "two");
         assert_eq!(fs::read_dir(&dir).unwrap().count(), 1);
         fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn makes_paths_relative_to_the_document() {
+        let doc = Path::new("/p/main.typ");
+        let inside = relative_to_document(doc, Path::new("/p/img/a b.png"));
+        assert_eq!(inside.unwrap(), "img/a b.png");
+        assert!(relative_to_document(doc, Path::new("/other/a.png")).is_err());
     }
 
     #[test]

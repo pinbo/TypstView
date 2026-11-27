@@ -1,12 +1,19 @@
+pub mod bibliography;
+pub mod constructs;
 pub mod engine;
 mod files;
+pub mod ide;
+pub mod markdown;
 #[cfg(target_os = "macos")]
 mod menu;
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
+use bibliography::{BibEntry, NewEntry};
+use constructs::{Construct, Detection};
 use engine::{CompileOutput, Diagnostic, Engine};
+use ide::{Completions, Hover, SymbolEntry};
 use tauri::State;
 
 /// The compiler is created on first use because scanning system fonts takes a
@@ -82,6 +89,94 @@ fn highlight_classes() -> Vec<&'static str> {
 }
 
 #[tauri::command]
+async fn complete(
+    compiler: State<'_, Compiler>,
+    path: Option<PathBuf>,
+    text: String,
+    offset: usize,
+    explicit: bool,
+) -> Result<Option<Completions>, String> {
+    compiler
+        .run(move |engine| engine.complete(path.as_deref(), text, offset, explicit))
+        .await
+}
+
+#[tauri::command]
+async fn hover(
+    compiler: State<'_, Compiler>,
+    path: Option<PathBuf>,
+    text: String,
+    offset: usize,
+    before: bool,
+) -> Result<Option<Hover>, String> {
+    compiler
+        .run(move |engine| engine.hover(path.as_deref(), text, offset, before))
+        .await
+}
+
+#[tauri::command]
+async fn symbols(compiler: State<'_, Compiler>) -> Result<Vec<SymbolEntry>, String> {
+    compiler.run(|engine| engine.symbols()).await
+}
+
+#[tauri::command]
+fn mode_at(text: String, offset: usize) -> &'static str {
+    ide::mode_at(&text, offset)
+}
+
+/// A preview for a visual editor: the SVG, or why there is none.
+#[tauri::command]
+async fn render_snippet(
+    compiler: State<'_, Compiler>,
+    path: Option<PathBuf>,
+    document: String,
+    snippet: String,
+) -> Result<String, String> {
+    compiler
+        .run(move |engine| engine.render_snippet(path.as_deref(), &document, &snippet))
+        .await?
+        .map_err(|errors| {
+            let messages: Vec<String> = errors.into_iter().map(|d| d.message).collect();
+            messages.join("\n")
+        })
+}
+
+#[tauri::command]
+async fn detect_construct(text: String, offset: usize) -> Option<Detection> {
+    constructs::detect(&text, offset)
+}
+
+#[tauri::command]
+fn render_construct(construct: Construct, in_code: bool, indent: String) -> Result<String, String> {
+    constructs::render(&construct, in_code, &indent)
+}
+
+#[tauri::command]
+async fn markdown_to_typst(markdown: String) -> String {
+    markdown::to_typst(&markdown)
+}
+
+#[tauri::command]
+async fn bibliography_entries(document: PathBuf, file: String) -> Result<Vec<BibEntry>, String> {
+    bibliography::list(&bibliography::resolve(&document, &file)?)
+}
+
+#[tauri::command]
+async fn add_bibliography_entry(
+    document: PathBuf,
+    file: String,
+    entry: NewEntry,
+) -> Result<(), String> {
+    bibliography::add(&bibliography::resolve(&document, &file)?, &entry)
+}
+
+/// The path to write in the document for a file the user picked.
+#[tauri::command]
+fn document_relative_path(document: PathBuf, target: PathBuf) -> Result<String, String> {
+    files::relative_to_document(&document, &target)
+}
+
+#[tauri::command]
 async fn read_file(path: PathBuf) -> Result<String, String> {
     files::read_text(&path)
 }
@@ -110,6 +205,7 @@ pub fn run() {
 
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .manage(compiler.clone())
         .setup(move |_app| {
             // Warm up the compiler while the window loads.
@@ -126,7 +222,18 @@ pub fn run() {
             highlight_classes,
             read_file,
             write_file,
-            startup_file
+            startup_file,
+            complete,
+            hover,
+            symbols,
+            mode_at,
+            render_snippet,
+            detect_construct,
+            render_construct,
+            markdown_to_typst,
+            bibliography_entries,
+            add_bibliography_entry,
+            document_relative_path
         ]);
 
     // macOS needs a menu bar. Windows and Linux use the in-window toolbar.

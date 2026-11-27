@@ -64,7 +64,7 @@ jobs:
       - name: Type-check and build the frontend
         run: npm run build
 
-      - name: Run Rust tests
+      - name: Run tests
         run: npm test
 
       - name: Build installers

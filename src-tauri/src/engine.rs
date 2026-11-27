@@ -59,6 +59,9 @@ pub struct Engine {
     fonts: FontStore,
     files: FileStore<Loader>,
     time: Time,
+    /// The last successful compile of the open document. Autocomplete and
+    /// hover use it to know about labels and the values of variables.
+    last: Option<(Option<PathBuf>, PagedDocument)>,
 }
 
 impl World for Engine {
@@ -144,11 +147,12 @@ impl Engine {
             fonts,
             files: FileStore::new(loader),
             time: Time::system(),
+            last: None,
         }
     }
 
     /// Point the compiler at the current editor contents.
-    fn set_document(&mut self, path: Option<&Path>, text: String) {
+    pub(crate) fn set_document(&mut self, path: Option<&Path>, text: String) {
         let (root, name) = match path {
             Some(p) => (
                 p.parent().map(Path::to_path_buf),
@@ -191,7 +195,7 @@ impl Engine {
     ) -> CompileOutput {
         self.set_document(path, text);
         let (document, diagnostics) = self.run();
-        let pages = document.map(|document| {
+        let pages = document.as_ref().map(|document| {
             let options = typst_svg::SvgOptions::default();
             document
                 .pages()
@@ -210,6 +214,9 @@ impl Engine {
                 })
                 .collect()
         });
+        if let Some(document) = document {
+            self.last = Some((path.map(Path::to_path_buf), document));
+        }
         CompileOutput { pages, diagnostics }
     }
 
@@ -222,6 +229,55 @@ impl Engine {
         };
         typst_pdf::pdf(&document, &typst_pdf::PdfOptions::default())
             .map_err(|errors| errors.iter().map(|d| self.convert(d)).collect())
+    }
+
+    /// The last compiled document, if it belongs to the file at `path`.
+    pub(crate) fn last_document(&self, path: Option<&Path>) -> Option<&PagedDocument> {
+        self.last
+            .as_ref()
+            .filter(|(of, _)| of.as_deref() == path)
+            .map(|(_, document)| document)
+    }
+
+    /// Render a small piece of Typst, such as an equation being edited, as a
+    /// tightly cropped SVG. The open document's top-level `#let` and `#import`
+    /// lines come first, so its own definitions work in the preview.
+    pub fn render_snippet(
+        &mut self,
+        path: Option<&Path>,
+        document: &str,
+        snippet: &str,
+    ) -> Result<String, Vec<Diagnostic>> {
+        const PAGE: &str = "#set page(width: auto, height: auto, margin: 6pt)\n";
+        let preamble = definitions(document);
+        let mut attempt = |preamble: &str| {
+            self.set_document(path, format!("{preamble}{PAGE}{snippet}\n"));
+            let (output, diagnostics) = self.run();
+            match output.as_ref().and_then(|d| d.pages().first()) {
+                Some(page) => Ok(typst_svg::svg(page, &Default::default())),
+                None => Err(diagnostics),
+            }
+        };
+        match attempt(&preamble) {
+            // A broken definition elsewhere must not break the preview.
+            Err(_) if !preamble.is_empty() => attempt(""),
+            result => result,
+        }
+        // Positions would refer to the temporary source, so drop them.
+        .map_err(|mut diagnostics| {
+            for d in &mut diagnostics {
+                (d.line, d.column, d.from, d.to) = (None, None, None, None);
+            }
+            diagnostics
+        })
+    }
+
+    pub(crate) fn library_ref(&self) -> &Library {
+        &self.library
+    }
+
+    pub(crate) fn root_dir(&self) -> Option<&Path> {
+        self.files.loader().root.as_deref()
     }
 
     fn convert(&self, diagnostic: &SourceDiagnostic) -> Diagnostic {
@@ -280,7 +336,22 @@ impl Engine {
     }
 }
 
-fn file_id(name: &str) -> FileId {
+/// The top-level imports and definitions of a document.
+fn definitions(text: &str) -> String {
+    use typst::syntax::SyntaxKind::{LetBinding, ModuleImport};
+    let root = typst::syntax::parse(text);
+    let mut out = String::new();
+    for node in LinkedNode::new(&root).children() {
+        if matches!(node.kind(), LetBinding | ModuleImport) {
+            out.push('#');
+            out.push_str(&text[node.range()]);
+            out.push('\n');
+        }
+    }
+    out
+}
+
+pub(crate) fn file_id(name: &str) -> FileId {
     let vpath = VirtualPath::new(name)
         .or_else(|_| VirtualPath::new(UNTITLED))
         .expect("the fallback file name is a valid path");
@@ -324,14 +395,14 @@ pub fn highlight_classes() -> Vec<&'static str> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use std::fs;
     use std::sync::OnceLock;
     use std::sync::{Mutex, MutexGuard};
 
     /// Font discovery is slow, so the tests share one engine.
-    fn engine() -> MutexGuard<'static, Engine> {
+    pub(crate) fn engine() -> MutexGuard<'static, Engine> {
         static ENGINE: OnceLock<Mutex<Engine>> = OnceLock::new();
         ENGINE
             .get_or_init(|| Mutex::new(Engine::new()))
@@ -396,6 +467,18 @@ mod tests {
     fn untitled_documents_explain_missing_files() {
         let out = engine().compile(None, "#include \"a.typ\"".into(), &[]);
         assert!(out.diagnostics[0].message.contains("save the document first"));
+    }
+
+    #[test]
+    fn renders_snippets_with_the_documents_definitions() {
+        let mut engine = engine();
+        let doc = "#let half = $1 / 2$\n= Title";
+        let svg = engine.render_snippet(None, doc, "$ #half + x $").unwrap();
+        assert!(svg.starts_with("<svg"));
+        // A broken definition falls back to rendering without it.
+        assert!(engine.render_snippet(None, "#let a = nope", "$x$").is_ok());
+        let errors = engine.render_snippet(None, "", "$ nope $").unwrap_err();
+        assert_eq!(errors[0].line, None);
     }
 
     #[test]

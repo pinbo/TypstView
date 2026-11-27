@@ -2,8 +2,13 @@
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { message, open, save } from "@tauri-apps/plugin-dialog";
+import { keymap } from "@codemirror/view";
+import { Prec } from "@codemirror/state";
+import { typstAssist } from "./assist";
 import { backend, Diagnostic } from "./backend";
+import { isDialogOpen } from "./dialog";
 import { Editor } from "./editor";
+import { insertCommands, SNIPPETS } from "./insert";
 import { Preview } from "./preview";
 import { coalesce } from "./schedule";
 import { WELCOME } from "./welcome";
@@ -75,7 +80,15 @@ const settings = {
 
 let wrap = settings.get("wrap") !== "off";
 
-const editor = new Editor($("editor"), wrap, {
+const insert = insertCommands({
+  editor: () => editor,
+  documentPath: () => current.path,
+  notify: (text, isError) => notify(text, isError),
+  recompile: () => requestCompile(),
+});
+
+const editor: Editor = new Editor($("editor"), wrap, {
+  extensions: [typstAssist(() => current.path), Prec.high(keymap.of(insert.keymap))],
   onChange: () => {
     updateTitle();
     requestHighlight();
@@ -416,6 +429,7 @@ async function exclusive(task: () => Promise<unknown>) {
 }
 
 const actions: Record<string, () => void> = {
+  ...insert.actions,
   new: () => void exclusive(newDocument),
   open: () => void exclusive(() => openDocument()),
   save: () => void exclusive(saveDocument),
@@ -431,8 +445,26 @@ const actions: Record<string, () => void> = {
   "zoom-fit": () => preview.fit(),
 };
 
+/** While a window is open, only closing the app is allowed through. */
+function perform(action: string) {
+  if (action !== "close" && isDialogOpen()) return;
+  actions[action]?.();
+}
+
 for (const button of document.querySelectorAll<HTMLElement>("[data-action]")) {
-  button.onclick = () => actions[button.dataset.action!]();
+  button.onclick = () => perform(button.dataset.action!);
+}
+
+$("snippet-group").append(
+  ...Object.entries(SNIPPETS).map(([name, [title]]) => new Option(title, `snippet-${name}`)),
+);
+// The drop-down menus run an action and go back to showing their name.
+for (const menu of document.querySelectorAll<HTMLSelectElement>("select.menu")) {
+  menu.onchange = () => {
+    const action = menu.value;
+    menu.selectedIndex = 0;
+    perform(action);
+  };
 }
 
 function shortcutFor(event: KeyboardEvent): string | null {
@@ -469,7 +501,7 @@ if (!isMac) {
       if (!action) return;
       event.preventDefault();
       event.stopPropagation();
-      actions[action]();
+      perform(action);
     },
     { capture: true },
   );
@@ -484,7 +516,7 @@ async function start() {
 
   highlightClasses = await backend.highlightClasses();
 
-  await listen<string>("menu", (event) => actions[event.payload]?.());
+  await listen<string>("menu", (event) => perform(event.payload));
 
   await appWindow.onCloseRequested(async (event) => {
     event.preventDefault();

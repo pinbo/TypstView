@@ -4,7 +4,14 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirro
 import { bracketMatching, indentOnInput, indentUnit } from "@codemirror/language";
 import { lintGutter, setDiagnostics } from "@codemirror/lint";
 import { highlightSelectionMatches, search, searchKeymap } from "@codemirror/search";
-import { Compartment, EditorState, Range, StateEffect, StateField } from "@codemirror/state";
+import {
+  Compartment,
+  EditorState,
+  type Extension,
+  Range,
+  StateEffect,
+  StateField,
+} from "@codemirror/state";
 import {
   Decoration,
   DecorationSet,
@@ -38,6 +45,8 @@ const wrapping = new Compartment();
 export interface EditorHooks {
   onChange: () => void;
   onCursor: (line: number, column: number) => void;
+  /** Autocomplete, hover and editing shortcuts. */
+  extensions: Extension[];
 }
 
 export class Editor {
@@ -70,6 +79,8 @@ export class Editor {
         lintGutter(),
         highlights,
         wrapping.of(this.wrap ? EditorView.lineWrapping : []),
+        EditorState.languageData.of(() => [{ commentTokens: { line: "//" } }]),
+        this.hooks.extensions,
         EditorView.contentAttributes.of({ spellcheck: "false", "aria-label": "Typst source" }),
         keymap.of([
           ...closeBracketsKeymap,

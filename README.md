@@ -4,8 +4,8 @@ A cross-platform desktop editor for [Typst](https://typst.app): source on one
 side, live preview on the other. It follows the core workflow of TypstEdit (a
 macOS-only SwiftUI app) on a stack that also targets Windows and Linux.
 
-This is a first version. It has been built and run **only on macOS (Apple
-Silicon)**. See [Test status](#test-status).
+This is a first version. It has been **run only on macOS (Apple Silicon)**. See
+[Test status](#test-status).
 
 ## Features
 
@@ -28,6 +28,55 @@ Silicon)**. See [Test status](#test-status).
 - CRLF line endings and a UTF-8 BOM are preserved. (A file that mixes line
   endings is saved with CRLF.)
 
+## Editing help
+
+- **Autocomplete and hover help** from Typst's IDE library (`typst-ide`):
+  functions, parameters, symbols, fonts, labels and files next to the document.
+  Suggestions appear as you type; Ctrl+Space also asks for them. Package names
+  are not suggested. Label suggestions come from the last successful compile.
+- **Format bar** (and a Format menu on macOS): bold, italic, underline,
+  strikethrough, highlight, subscript, superscript, inline code, headings,
+  bullet, numbered and term lists, block quote, code block and comment.
+- **Insert menu:** the visual editors below, a searchable symbol picker, and
+  snippets (page break, page setup, text and paragraph settings, numbering,
+  columns, centred block, line, definition, date).
+- **Markdown:** *Paste Markdown as Typst* converts the clipboard, and *Convert
+  selection from Markdown* converts text already in the document. An ordinary
+  paste is never changed. LaTeX math and Markdown footnotes come through as
+  literal text, inline HTML tags are dropped (their text stays), and HTML blocks
+  are kept as code blocks.
+
+## Visual editors
+
+*Insert* opens an empty form. **Edit at Cursor** (Mod+.) reads the innermost
+supported construct at the cursor into the same form and writes it back.
+
+| Editor | What the form covers |
+|---|---|
+| Equation | Typst math with symbol buttons, a live rendered preview, display or inline, label. The preview uses the document's top-level `#let` and `#import` lines. It is not a WYSIWYG formula editor: you edit Typst source. |
+| Table and grid | Cells, header rows, column widths, adding and removing rows and columns, pasting cells from a spreadsheet |
+| Figure and image | Image file and width, or other content; caption and label |
+| Link | Address or label, and text |
+| Citations and bibliography | List and filter entries, cite one, add entries to a `.bib` file; separately, the `#bibliography(..)` line itself |
+| Quote, code, footnote, outline | Their text and main options |
+
+**What editing does to your source:**
+
+- Named arguments without a form field, such as `align:` or `stroke:`, are
+  written back unchanged. The form lists them.
+- The construct you apply is reformatted in a standard layout. The rest of the
+  document is not touched.
+- A construct the form cannot represent in full is left alone, with the reason
+  shown. Examples: tables using `table.cell`, `table.hline` or `table.footer`,
+  computed columns, spread arguments, or comments that would be lost.
+- A field that would spill into the rest of the document, such as one with an
+  unbalanced bracket, is rejected before anything changes.
+- Adding a bibliography entry only appends to the file. Existing entries,
+  comments and formatting stay as they were. `.yml` files can be read and cited
+  but not added to.
+- Citing in a document with no bibliography adds one at the end. It only looks at
+  the open file, so check for a duplicate if another file already has one.
+
 ## Why this stack
 
 | Part | Choice | Reason |
@@ -45,8 +94,8 @@ rebuilding the app. TypstEdit can instead swap its compiler binary.
 ### Requirements
 
 All platforms: [Rust](https://rustup.rs) 1.92 or newer (tested with 1.99.1) and
-[Node.js](https://nodejs.org) with npm (tested with Node 26.5; the build tool,
-Vite 8, needs Node 20.19+ or 22.12+).
+[Node.js](https://nodejs.org) with npm (tested with Node 26.5; building needs
+Node 20.19+ or 22.12+, and the tests need 22.18+ or 23.6+).
 
 - **macOS:** `xcode-select --install` (Command Line Tools).
 - **Windows:** Microsoft C++ Build Tools ("Desktop development with C++") and the
@@ -79,7 +128,7 @@ Open a file at startup:
 npm run app -- -- -- samples/demo.typ
 ```
 
-Run the Rust tests:
+Run the tests (formatting commands with Node, everything else with Rust):
 
 ```bash
 npm test
@@ -119,8 +168,10 @@ runs the Rust tests and builds installers with GitHub Actions on four targets:
 | `windows-x64` | `windows-latest` | `.exe` (NSIS), `.msi` |
 | `linux-x64` | `ubuntu-22.04` | `.deb`, `.rpm`, `.AppImage` |
 
-**It has not run yet.** It starts once the project is in a GitHub repository. It
-runs on pushes to `main`, on pull requests, and on demand from the Actions tab;
+In its first completed jobs (the commit "Rename the app to TypstView", which
+predates the editing help and visual editors), Linux, Windows and Apple Silicon
+passed. The Intel Mac job had no failed step but had not finished when this was
+written. It runs on pushes to `main`, on pull requests, and on demand from the Actions tab;
 change the branch name in the file if yours differs. Installers are attached to
 each run as artifacts, unsigned. Private repositories use up Actions minutes,
 and macOS and Windows minutes cost more than Linux ones.
@@ -141,6 +192,14 @@ hand on each platform.
 | Toggle line wrapping | Alt/Option+Z |
 | Zoom in / out / fit | Mod+= / Mod+- / Mod+0 |
 | Find and replace | Mod+F |
+| Edit at cursor | Mod+. |
+| Autocomplete | Ctrl+Space |
+| Bold / Italic / Underline / Strikethrough | Mod+B / Mod+I / Mod+U / Mod+Shift+X |
+| Heading 1–4 / plain text | Mod+Alt+1–4 / Mod+Alt+0 |
+| Bullet list / Numbered list | Mod+Shift+8 / Mod+Shift+7 |
+| Toggle comment | Mod+/ |
+| Insert equation / link | Mod+Shift+M / Mod+K |
+| Paste Markdown as Typst | Mod+Shift+V |
 
 ## How files and packages resolve
 
@@ -158,10 +217,11 @@ hand on each platform.
 
 Checked on macOS 26.7.3, arm64, with only the Command Line Tools installed.
 
-- **Automated:** 8 Rust tests cover page output and reuse of unchanged pages,
-  error positions in non-ASCII text, included files, unsaved documents, PDF
-  output, highlighting offsets and file writing. The frontend is type-checked but
-  has no automated tests.
+- **Automated:** 31 Rust tests cover compiling and PDF output, error positions,
+  highlighting, file writing, autocomplete, hover and symbols, reading and
+  rewriting every construct (including refusal of those it cannot keep),
+  Markdown conversion and bibliography files. 7 Node tests cover the formatting
+  commands. The dialogs have no automated tests.
 - **Real app (development and packaged `.app`):** launching with a file,
   highlighting, line wrapping, preview rendering including an included file, and
   the display of a compile error.
@@ -171,12 +231,22 @@ Checked on macOS 26.7.3, arm64, with only the Command Line Tools installed.
   their prompts, the overwrite warning, CRLF/BOM preservation, the close prompt,
   draft recovery and dark appearance. Native dialogs and file access were faked
   there, and it ran in the Browser pane's engine, not the system web view.
+- **Editing help and visual editors:** exercised in the browser harness,
+  including real bibliography files. In the packaged app, a temporary self-test
+  confirmed that the new commands answer (autocomplete, hover, symbols, construct
+  reading and writing, Markdown, bibliography, clipboard access) and that the
+  equation dialog opens with its preview and a sensible layout. That check was
+  made by measurement: the screen was locked, so **the new interface has not been
+  seen in the real app window**, or used there with a keyboard and mouse. The new
+  macOS menus and the image file picker are unchecked.
 - **Not yet checked by hand in the real app:** native file and message dialogs,
   the macOS menu and shortcuts, the close and quit prompt, drag and drop, saving
   and PDF export through the UI, package download, and installing from the
   `.dmg` (it builds on this Mac and passes `hdiutil verify`).
-- **Not tested at all:** Windows, Linux and Intel Macs. Nothing has been built or
-  run on them. The code has no macOS-only logic apart from the menu bar, but
+- **Never launched:** Windows, Linux and Intel Macs. CI has built and tested an
+  earlier version (see [Continuous integration](#continuous-integration)), but
+  nobody has run the app on them, and the editing help and visual editors have
+  not been through CI. The code has no macOS-only logic apart from the menu bar, but
   expect to fix things on first contact, particularly in shortcuts, dialogs and
   web view rendering.
 
@@ -188,6 +258,7 @@ Checked on macOS 26.7.3, arm64, with only the Command Line Tools installed.
   prompt; the text is offered for recovery at the next launch. Recovery copies
   are written about every half second, and very large documents may not fit.
 - Links in the preview are not clickable.
+- The formatting commands do not check whether the cursor is in math or code.
 - The whole document is re-highlighted on each change, which may be slow for very
   large files.
 - No file association: double-clicking a `.typ` file does not open it here.
@@ -196,11 +267,9 @@ Checked on macOS 26.7.3, arm64, with only the Command Line Tools installed.
 
 Features TypstEdit has that this version leaves out:
 
-- **Editing help:** Typst autocomplete and hover (the `typst-ide` crate is a good
-  base), formatting buttons and shortcuts, lists, quotes and code blocks,
-  snippet and symbol insertion, Markdown-to-Typst paste.
-- **Visual editors:** equations, tables, figures, links, bibliography and others,
-  plus "edit at cursor".
+- **More editing:** automatic Markdown conversion on ordinary paste, WYSIWYG
+  equation editing, merged table cells and cell styling, and TypstEdit's other
+  pickers and editors (layout, external data, foundation items and more).
 - **Projects:** file sidebar, tabs and multiple windows, a chosen project root
   and main file, find in project, outline, recent files and welcome screen,
   templates, notebooks, backups.
@@ -222,8 +291,10 @@ and code signing.
 
 ```
 .github/workflows/   CI: tests and installers for each platform
-src/                 frontend: main.ts (app), editor.ts, preview.ts, styles.css
-src-tauri/src/       engine.rs (Typst), lib.rs (commands), files.rs, menu.rs (macOS)
+src/                 frontend: main.ts (app), editor.ts, preview.ts, assist.ts
+                     (autocomplete), insert.ts, forms.ts, dialog.ts, format.ts
+src-tauri/src/       engine.rs (Typst), ide.rs, constructs.rs (visual editor model),
+                     markdown.rs, bibliography.rs, files.rs, lib.rs, menu.rs
 samples/             a small multi-file example document
 app-icon.svg         icon source; regenerate with `npx tauri icon app-icon.svg`
 ```

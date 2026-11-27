@@ -27,6 +27,58 @@
       </span>
     </header>
 
+    <nav id="formatbar" aria-label="Formatting and insertion">
+      <button data-action="bold" title="Bold (Mod+B)"><b>B</b></button>
+      <button data-action="italic" title="Italic (Mod+I)"><i>I</i></button>
+      <button data-action="underline" title="Underline (Mod+U)"><u>U</u></button>
+      <button data-action="strike" title="Strikethrough (Mod+Shift+X)"><s>S</s></button>
+      <button data-action="highlight" title="Highlight"><mark>H</mark></button>
+      <button data-action="subscript" title="Subscript">x<sub>2</sub></button>
+      <button data-action="superscript" title="Superscript">x<sup>2</sup></button>
+      <button data-action="inline-code" title="Inline code"><code>&lt;/&gt;</code></button>
+      <select class="menu" aria-label="Heading level">
+        <option>Heading</option>
+        <option value="heading-1">Heading 1 (Mod+Alt+1)</option>
+        <option value="heading-2">Heading 2 (Mod+Alt+2)</option>
+        <option value="heading-3">Heading 3 (Mod+Alt+3)</option>
+        <option value="heading-4">Heading 4</option>
+        <option value="heading-0">Plain text</option>
+      </select>
+      <span class="group" role="group" aria-label="Lists and blocks">
+        <button data-action="bullet-list" title="Bullet list (Mod+Shift+8)">• List</button>
+        <button data-action="numbered-list" title="Numbered list (Mod+Shift+7)">1. List</button>
+        <button data-action="term-list" title="Term (description) list">Terms</button>
+        <button data-action="quote-block" title="Wrap lines in a block quote">❝</button>
+        <button data-action="code-block" title="Wrap lines in a code block">{ }</button>
+        <button data-action="comment" title="Toggle comment (Mod+/)">//</button>
+      </span>
+      <span class="group" role="group" aria-label="Insert">
+        <select class="menu" aria-label="Insert">
+          <option>Insert…</option>
+          <optgroup label="Editors">
+            <option value="insert-equation">Equation…</option>
+            <option value="insert-table">Table…</option>
+            <option value="insert-figure">Figure or image…</option>
+            <option value="insert-link">Link…</option>
+            <option value="citations">Citations and bibliography…</option>
+            <option value="insert-bibliography">Bibliography list…</option>
+            <option value="insert-footnote">Footnote…</option>
+            <option value="insert-quote">Quote…</option>
+            <option value="insert-code">Code…</option>
+            <option value="insert-outline">Outline (contents)…</option>
+            <option value="symbols">Symbol…</option>
+          </optgroup>
+          <optgroup label="Snippets" id="snippet-group"></optgroup>
+          <optgroup label="Markdown">
+            <option value="paste-markdown">Paste Markdown as Typst</option>
+            <option value="convert-markdown">Convert selection from Markdown</option>
+          </optgroup>
+        </select>
+        <button data-action="symbols" title="Insert a symbol">Ω</button>
+        <button data-action="edit-at-cursor" title="Open the visual editor for what is at the cursor (Mod+.)">Edit at Cursor</button>
+      </span>
+    </nav>
+
     <main id="panes" data-view="split">
       <section id="editor" aria-label="Typst source"></section>
       <div id="divider" role="separator" aria-orientation="vertical"></div>

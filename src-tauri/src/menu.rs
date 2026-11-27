@@ -53,6 +53,56 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             &PredefinedMenuItem::select_all(app, None)?,
         ],
     )?;
+    let format = Submenu::with_items(
+        app,
+        "Format",
+        true,
+        &[
+            &item("bold", "Bold", Some("CmdOrCtrl+B"))?,
+            &item("italic", "Italic", Some("CmdOrCtrl+I"))?,
+            &item("underline", "Underline", Some("CmdOrCtrl+U"))?,
+            &item("strike", "Strikethrough", Some("CmdOrCtrl+Shift+X"))?,
+            &item("highlight", "Highlight", None)?,
+            &item("subscript", "Subscript", None)?,
+            &item("superscript", "Superscript", None)?,
+            &item("inline-code", "Inline Code", None)?,
+            &line()?,
+            &item("heading-1", "Heading 1", Some("CmdOrCtrl+Alt+1"))?,
+            &item("heading-2", "Heading 2", Some("CmdOrCtrl+Alt+2"))?,
+            &item("heading-3", "Heading 3", Some("CmdOrCtrl+Alt+3"))?,
+            &item("heading-0", "Plain Text", Some("CmdOrCtrl+Alt+0"))?,
+            &line()?,
+            &item("bullet-list", "Bullet List", Some("CmdOrCtrl+Shift+8"))?,
+            &item("numbered-list", "Numbered List", Some("CmdOrCtrl+Shift+7"))?,
+            &item("term-list", "Term List", None)?,
+            &item("quote-block", "Block Quote", None)?,
+            &item("code-block", "Code Block", None)?,
+            &line()?,
+            &item("comment", "Toggle Comment", Some("CmdOrCtrl+/"))?,
+        ],
+    )?;
+    let insert = Submenu::with_items(
+        app,
+        "Insert",
+        true,
+        &[
+            &item("edit-at-cursor", "Edit at Cursor", Some("CmdOrCtrl+."))?,
+            &line()?,
+            &item("insert-equation", "Equation…", Some("CmdOrCtrl+Shift+M"))?,
+            &item("insert-table", "Table…", None)?,
+            &item("insert-figure", "Figure or Image…", None)?,
+            &item("insert-link", "Link…", Some("CmdOrCtrl+K"))?,
+            &item("citations", "Citations and Bibliography…", None)?,
+            &item("insert-footnote", "Footnote…", None)?,
+            &item("insert-quote", "Quote…", None)?,
+            &item("insert-code", "Code…", None)?,
+            &item("insert-outline", "Outline…", None)?,
+            &item("symbols", "Symbol…", None)?,
+            &line()?,
+            &item("paste-markdown", "Paste Markdown as Typst", Some("CmdOrCtrl+Shift+V"))?,
+            &item("convert-markdown", "Convert Selection from Markdown", None)?,
+        ],
+    )?;
     let view = Submenu::with_items(
         app,
         "View",
@@ -80,7 +130,10 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         ],
     )?;
 
-    Menu::with_items(app, &[&application, &file, &edit, &view, &window])
+    Menu::with_items(
+        app,
+        &[&application, &file, &edit, &format, &insert, &view, &window],
+    )
 }
 
 pub fn forward<R: Runtime>(app: &AppHandle<R>, event: MenuEvent) {
