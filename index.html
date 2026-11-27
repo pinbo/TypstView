@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>typstView</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header id="toolbar">
+      <button data-action="new" title="New document (Mod+N)">New</button>
+      <button data-action="open" title="Open a file (Mod+O)">Open</button>
+      <button data-action="save" title="Save (Mod+S)">Save</button>
+      <button data-action="save-as" title="Save under a new name (Mod+Shift+S)">Save As</button>
+      <button data-action="export" title="Export as PDF (Mod+E)">Export PDF</button>
+      <span id="filename"></span>
+      <button data-action="wrap" id="wrap-button" title="Toggle line wrapping (Alt+Z)">Wrap</button>
+      <span class="group" role="group" aria-label="Layout">
+        <button data-action="view-editor" title="Editor only (Mod+1)">Editor</button>
+        <button data-action="view-split" title="Editor and preview (Mod+2)">Split</button>
+        <button data-action="view-preview" title="Preview only (Mod+3)">Preview</button>
+      </span>
+      <span class="group" role="group" aria-label="Preview zoom">
+        <button data-action="zoom-out" title="Zoom out (Mod+-)">−</button>
+        <button data-action="zoom-fit" id="zoom-label" title="Fit to width (Mod+0)">Fit</button>
+        <button data-action="zoom-in" title="Zoom in (Mod+=)">+</button>
+      </span>
+    </header>
+
+    <main id="panes" data-view="split">
+      <section id="editor" aria-label="Typst source"></section>
+      <div id="divider" role="separator" aria-orientation="vertical"></div>
+      <section id="preview" aria-label="Preview"><div id="pages"></div></section>
+    </main>
+
+    <section id="problems" aria-label="Problems" hidden>
+      <ul id="problem-list"></ul>
+    </section>
+
+    <footer id="statusbar">
+      <button id="compile-status" title="Show or hide problems">Starting…</button>
+      <span id="message" role="status"></span>
+      <span id="page-count"></span>
+      <span id="cursor-position"></span>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

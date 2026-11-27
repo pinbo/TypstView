@@ -1,0 +1,88 @@
+//! The macOS menu bar. Items are forwarded to the web view as `menu` events.
+
+use tauri::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::{AppHandle, Emitter, Runtime};
+
+pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
+    let item = |id: &str, text: &str, keys: Option<&str>| {
+        MenuItem::with_id(app, id, text, true, keys)
+    };
+    let line = || PredefinedMenuItem::separator(app);
+
+    let application = Submenu::with_items(
+        app,
+        "typstView",
+        true,
+        &[
+            &PredefinedMenuItem::about(app, None, None)?,
+            &line()?,
+            &PredefinedMenuItem::hide(app, None)?,
+            &PredefinedMenuItem::hide_others(app, None)?,
+            &PredefinedMenuItem::show_all(app, None)?,
+            &line()?,
+            // Not the predefined Quit item: that one skips the unsaved-changes prompt.
+            &item("close", "Quit typstView", Some("CmdOrCtrl+Q"))?,
+        ],
+    )?;
+    let file = Submenu::with_items(
+        app,
+        "File",
+        true,
+        &[
+            &item("new", "New", Some("CmdOrCtrl+N"))?,
+            &item("open", "Open…", Some("CmdOrCtrl+O"))?,
+            &line()?,
+            &item("save", "Save", Some("CmdOrCtrl+S"))?,
+            &item("save-as", "Save As…", Some("CmdOrCtrl+Shift+S"))?,
+            &item("export", "Export PDF…", Some("CmdOrCtrl+E"))?,
+            &line()?,
+            &item("close", "Close Window", Some("CmdOrCtrl+W"))?,
+        ],
+    )?;
+    let edit = Submenu::with_items(
+        app,
+        "Edit",
+        true,
+        &[
+            &PredefinedMenuItem::undo(app, None)?,
+            &PredefinedMenuItem::redo(app, None)?,
+            &line()?,
+            &PredefinedMenuItem::cut(app, None)?,
+            &PredefinedMenuItem::copy(app, None)?,
+            &PredefinedMenuItem::paste(app, None)?,
+            &PredefinedMenuItem::select_all(app, None)?,
+        ],
+    )?;
+    let view = Submenu::with_items(
+        app,
+        "View",
+        true,
+        &[
+            &item("view-editor", "Editor Only", Some("CmdOrCtrl+1"))?,
+            &item("view-split", "Editor and Preview", Some("CmdOrCtrl+2"))?,
+            &item("view-preview", "Preview Only", Some("CmdOrCtrl+3"))?,
+            &line()?,
+            &item("wrap", "Toggle Line Wrapping", Some("Alt+Z"))?,
+            &line()?,
+            &item("zoom-in", "Zoom In Preview", Some("CmdOrCtrl+="))?,
+            &item("zoom-out", "Zoom Out Preview", Some("CmdOrCtrl+-"))?,
+            &item("zoom-fit", "Fit Preview to Width", Some("CmdOrCtrl+0"))?,
+        ],
+    )?;
+    let window = Submenu::with_items(
+        app,
+        "Window",
+        true,
+        &[
+            &PredefinedMenuItem::minimize(app, None)?,
+            &PredefinedMenuItem::maximize(app, None)?,
+            &PredefinedMenuItem::fullscreen(app, None)?,
+        ],
+    )?;
+
+    Menu::with_items(app, &[&application, &file, &edit, &view, &window])
+}
+
+pub fn forward<R: Runtime>(app: &AppHandle<R>, event: MenuEvent) {
+    let _ = app.emit("menu", event.id().as_ref());
+}
