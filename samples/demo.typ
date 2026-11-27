@@ -10,5 +10,3 @@ $ integral_0^oo e^(-x^2) dif x = sqrt(pi) / 2 $
 // A comment
 #let total = (1, 2, 3).sum()
 The total is *#total*.
-
-HOw are you doing?
