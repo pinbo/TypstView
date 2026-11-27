@@ -1,5 +1,5 @@
 #set page(paper: "us-letter", margin: 1in)
-#set text(font: "New Computer Modern", size: 12pt)
+#set text(font: "Libertinus Serif", size: 12pt)
 #include "intro.typ"
 
 == Long line
