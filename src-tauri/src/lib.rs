@@ -135,5 +135,5 @@ pub fn run() {
 
     builder
         .run(tauri::generate_context!())
-        .expect("failed to start typstView");
+        .expect("failed to start TypstView");
 }

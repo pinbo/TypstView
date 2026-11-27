@@ -3,7 +3,7 @@ export const WELCOME = `#set page(paper: "a4", margin: 2.5cm)
 #set heading(numbering: "1.1")
 #set par(justify: true)
 
-#align(center, text(20pt, weight: "bold")[Welcome to typstView])
+#align(center, text(20pt, weight: "bold")[Welcome to TypstView])
 
 = Getting started
 Type on the left and the preview on the right follows along. Long lines wrap in

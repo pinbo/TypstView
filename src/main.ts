@@ -63,7 +63,7 @@ function updateTitle() {
   shownTitle = title;
   $("filename").textContent = title;
   $("filename").title = current.path ?? "Not saved yet";
-  void appWindow.setTitle(`${title} — typstView`);
+  void appWindow.setTitle(`${title} — TypstView`);
 }
 
 // ---------------------------------------------------------------- Editor and preview

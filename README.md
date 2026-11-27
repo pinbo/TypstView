@@ -1,4 +1,4 @@
-# typstView
+# TypstView
 
 A cross-platform desktop editor for [Typst](https://typst.app): source on one
 side, live preview on the other. It follows the core workflow of TypstEdit (a
@@ -149,7 +149,7 @@ hand on each platform.
   files on disk.
 - Only the document in the editor comes from memory. Other files are read from
   disk at each compile. After changing one in another program, return to the
-  typstView window to refresh the preview.
+  TypstView window to refresh the preview.
 - Fonts come from the system, plus the fonts bundled with Typst.
 - `@preview/...` packages are downloaded from Typst Universe on first use and
   cached where the Typst CLI caches them. This needs network access.

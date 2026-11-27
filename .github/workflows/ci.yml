@@ -72,7 +72,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: typstView-${{ matrix.name }}
+          name: TypstView-${{ matrix.name }}
           if-no-files-found: error
           path: |
             src-tauri/target/release/bundle/dmg/*.dmg

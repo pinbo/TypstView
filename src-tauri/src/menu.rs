@@ -11,7 +11,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
 
     let application = Submenu::with_items(
         app,
-        "typstView",
+        "TypstView",
         true,
         &[
             &PredefinedMenuItem::about(app, None, None)?,
@@ -21,7 +21,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             &PredefinedMenuItem::show_all(app, None)?,
             &line()?,
             // Not the predefined Quit item: that one skips the unsaved-changes prompt.
-            &item("close", "Quit typstView", Some("CmdOrCtrl+Q"))?,
+            &item("close", "Quit TypstView", Some("CmdOrCtrl+Q"))?,
         ],
     )?;
     let file = Submenu::with_items(
