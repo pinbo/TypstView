@@ -87,6 +87,75 @@ export function toggleStyle(state: EditorState, name: StyleName): TransactionSpe
   });
 }
 
+// A `#text` call that sets nothing but the color, so it is safe to rewrite.
+const COLOR = String.raw`#text\(fill: (?:[a-z]+|rgb\("#[0-9a-fA-F]{3,8}"\))\)\[`;
+const COLOR_BEFORE = new RegExp(`${COLOR}$`);
+const COLOR_START = new RegExp(`^${COLOR}`);
+
+/** Whether the brackets in `text` pair up, so one around it closes around all of it. */
+function balanced(text: string): boolean {
+  let depth = 0;
+  for (const [token] of text.matchAll(/\\.|[[\]]/gs)) {
+    if (token === "[") depth++;
+    else if (token === "]" && --depth < 0) return false;
+  }
+  return depth === 0;
+}
+
+/** Text after a call that Typst would read as part of it unless `;` ends it. */
+const JOINS = /^(?:[([]|\.\p{L})/u;
+
+/**
+ * Color each selection with `color`, a Typst expression such as `red`, or take
+ * its color away when `color` is null. Recoloring replaces the old color.
+ */
+export function setTextColor(state: EditorState, color: string | null): TransactionSpec {
+  const open = color === null ? "" : `#text(fill: ${color})[`;
+
+  return state.changeByRange((range) => {
+    const { from, to } = range;
+    const text = state.sliceDoc(from, to);
+
+    // The color wrapper is just outside the selection, or selected with it.
+    const outside = COLOR_BEFORE.exec(state.sliceDoc(Math.max(0, from - 40), from))?.[0];
+    const selected = COLOR_START.exec(text)?.[0];
+    let found: { start: number; end: number; inner: string } | null = null;
+    if (outside && state.sliceDoc(to, to + 1) === "]" && balanced(text)) {
+      found = { start: from - outside.length, end: to + 1, inner: text };
+    } else if (selected && text.endsWith("]")) {
+      const inner = text.slice(selected.length, -1);
+      if (balanced(inner)) found = { start: from, end: to, inner };
+    }
+
+    if (found) {
+      const { start, inner } = found;
+      let { end } = found;
+      // Without the call, a `;` that ended it would show up as text.
+      if (color === null && state.sliceDoc(end, end + 1) === ";") end++;
+      const insert = color === null ? inner : `${open}${inner}]`;
+      const anchor = start + open.length;
+      return {
+        changes: { from: start, to: end, insert },
+        range: EditorSelection.range(anchor, anchor + inner.length),
+      };
+    }
+    if (color === null) return { range };
+
+    // Leave surrounding spaces outside the brackets.
+    const blank = !text.trim();
+    const start = from + (blank ? 0 : text.length - text.trimStart().length);
+    const end = blank ? to : from + text.trimEnd().length;
+    const close = JOINS.test(state.sliceDoc(end, end + 2)) ? "];" : "]";
+    return {
+      changes: [
+        { from: start, insert: open },
+        { from: end, insert: close },
+      ],
+      range: EditorSelection.range(start + open.length, end + open.length),
+    };
+  });
+}
+
 /** The lines touched by any selection, each once. */
 function selectedLines(state: EditorState) {
   const lines = new Map<number, ReturnType<EditorState["doc"]["line"]>>();

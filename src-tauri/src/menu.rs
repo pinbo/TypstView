@@ -63,6 +63,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             &item("underline", "Underline", Some("CmdOrCtrl+U"))?,
             &item("strike", "Strikethrough", Some("CmdOrCtrl+Shift+X"))?,
             &item("highlight", "Highlight", None)?,
+            &item("text-color", "Text Color…", None)?,
             &item("subscript", "Subscript", None)?,
             &item("superscript", "Superscript", None)?,
             &item("inline-code", "Inline Code", None)?,

@@ -35,8 +35,13 @@ This is a first version. It has been **run only on macOS (Apple Silicon)**. See
   Suggestions appear as you type; Ctrl+Space also asks for them. Package names
   are not suggested. Label suggestions come from the last successful compile.
 - **Format bar** (and a Format menu on macOS): bold, italic, underline,
-  strikethrough, highlight, subscript, superscript, inline code, headings,
+  strikethrough, highlight, text color, subscript, superscript, inline code, headings,
   bullet, numbered and term lists, block quote, code block and comment.
+- **Text color:** the **A** button (Format → Text Color… on macOS) offers
+  Typst's named colors, a custom color, and *Remove color*. It writes
+  `#text(fill: red)[..]`; recoloring replaces that call. Only calls that set
+  the color alone are changed or removed. To color an equation, select all of
+  it, including the `$` signs.
 - **Insert menu:** the visual editors below, a searchable symbol picker, and
   snippets (page break, page setup, text and paragraph settings, numbering,
   columns, centred block, line, definition, date).
@@ -168,10 +173,9 @@ runs the Rust tests and builds installers with GitHub Actions on four targets:
 | `windows-x64` | `windows-latest` | `.exe` (NSIS), `.msi` |
 | `linux-x64` | `ubuntu-22.04` | `.deb`, `.rpm`, `.AppImage` |
 
-In its first completed jobs (the commit "Rename the app to TypstView", which
-predates the editing help and visual editors), Linux, Windows and Apple Silicon
-passed. The Intel Mac job had no failed step but had not finished when this was
-written. It runs on pushes to `main`, on pull requests, and on demand from the Actions tab;
+All four jobs passed for the commit "Add editing help and visual editors".
+Changes made after that commit have not been through CI until they are pushed.
+It runs on pushes to `main`, on pull requests, and on demand from the Actions tab;
 change the branch name in the file if yours differs. Installers are attached to
 each run as artifacts, unsigned. Private repositories use up Actions minutes,
 and macOS and Windows minutes cost more than Linux ones.
@@ -220,7 +224,7 @@ Checked on macOS 26.7.3, arm64, with only the Command Line Tools installed.
 - **Automated:** 31 Rust tests cover compiling and PDF output, error positions,
   highlighting, file writing, autocomplete, hover and symbols, reading and
   rewriting every construct (including refusal of those it cannot keep),
-  Markdown conversion and bibliography files. 7 Node tests cover the formatting
+  Markdown conversion and bibliography files. 8 Node tests cover the formatting
   commands. The dialogs have no automated tests.
 - **Real app (development and packaged `.app`):** launching with a file,
   highlighting, line wrapping, preview rendering including an included file, and
@@ -239,14 +243,17 @@ Checked on macOS 26.7.3, arm64, with only the Command Line Tools installed.
   made by measurement: the screen was locked, so **the new interface has not been
   seen in the real app window**, or used there with a keyboard and mouse. The new
   macOS menus and the image file picker are unchecked.
+- **Text color:** one Node test, plus a try in the browser harness with the real
+  compiler (apply, custom color, remove, a whole equation, and the refusal
+  inside one). Not tried in the real app window, including its color picker.
 - **Not yet checked by hand in the real app:** native file and message dialogs,
   the macOS menu and shortcuts, the close and quit prompt, drag and drop, saving
   and PDF export through the UI, package download, and installing from the
   `.dmg` (it builds on this Mac and passes `hdiutil verify`).
-- **Never launched:** Windows, Linux and Intel Macs. CI has built and tested an
-  earlier version (see [Continuous integration](#continuous-integration)), but
-  nobody has run the app on them, and the editing help and visual editors have
-  not been through CI. The code has no macOS-only logic apart from the menu bar, but
+- **Never launched:** Windows, Linux and Intel Macs. CI has built and tested the
+  app, including the editing help and visual editors (see
+  [Continuous integration](#continuous-integration)), but nobody has run it on
+  them. The code has no macOS-only logic apart from the menu bar, but
   expect to fix things on first contact, particularly in shortcuts, dialogs and
   web view rendering.
 
@@ -258,7 +265,7 @@ Checked on macOS 26.7.3, arm64, with only the Command Line Tools installed.
   prompt; the text is offered for recovery at the next launch. Recovery copies
   are written about every half second, and very large documents may not fit.
 - Links in the preview are not clickable.
-- The formatting commands do not check whether the cursor is in math or code.
+- The formatting commands, apart from text color, do not check whether the cursor is in math or code.
 - The whole document is re-highlighted on each change, which may be slow for very
   large files.
 - No file association: double-clicking a `.typ` file does not open it here.

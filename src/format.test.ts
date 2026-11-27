@@ -5,6 +5,7 @@ import {
   citation,
   escapeMarkup,
   setHeading,
+  setTextColor,
   symbolText,
   toggleList,
   toggleStyle,
@@ -84,4 +85,27 @@ test("citations and symbols stay separate from their neighbours", () => {
   assert.equal(symbolText("arrow.r", "markup", " ", "x"), "#sym.arrow.r;");
   assert.equal(symbolText("arrow.r", "markup", " ", ". "), "#sym.arrow.r");
   assert.equal(symbolText("pi", "code", "(", ")"), "sym.pi");
+});
+
+test("text color wraps, changes and comes off", () => {
+  const red = (s: EditorState) => setTextColor(s, "red");
+  const none = (s: EditorState) => setTextColor(s, null);
+  assert.equal(apply("a| big |dog", red), "a #text(fill: red)[|big|] dog");
+  assert.equal(apply("a | dog", red), "a #text(fill: red)[|] dog");
+  assert.equal(
+    apply('a #text(fill: red)[|big|] dog', (s) => setTextColor(s, 'rgb("#00ff00")')),
+    'a #text(fill: rgb("#00ff00"))[|big|] dog',
+  );
+  assert.equal(apply('a |#text(fill: rgb("#00ff00"))[big]| dog', red), "a #text(fill: red)[|big|] dog");
+  assert.equal(apply("a #text(fill: red)[|big|] dog", none), "a |big| dog");
+  assert.equal(apply("|big|(1)", red), "#text(fill: red)[|big|];(1)");
+  assert.equal(apply("#text(fill: red)[|big|];(1)", none), "|big|(1)");
+  assert.equal(apply("a |big| dog", none), "a |big| dog");
+  // Calls that set more than the color, and two separate calls, are left whole.
+  assert.equal(
+    apply("#text(size: 2em, fill: red)[|x|]", none),
+    "#text(size: 2em, fill: red)[|x|]",
+  );
+  const two = "#text(fill: red)[a] #text(fill: blue)[b]";
+  assert.equal(apply(`|${two}|`, red), `#text(fill: red)[|${two}|]`);
 });

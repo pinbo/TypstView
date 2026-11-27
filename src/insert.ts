@@ -12,6 +12,7 @@ import type { Editor } from "./editor";
 import {
   citation,
   setHeading,
+  setTextColor,
   STYLES,
   symbolText,
   toggleList,
@@ -59,6 +60,28 @@ const CONSTRUCT_ACTIONS: Record<string, ConstructType> = {
   "insert-outline": "outline",
   "insert-bibliography": "bibliography",
 };
+
+/** Typst's named colors and how Typst draws them. */
+const TEXT_COLORS: [name: string, css: string][] = [
+  ["black", "#000000"],
+  ["gray", "#aaaaaa"],
+  ["silver", "#dddddd"],
+  ["white", "#ffffff"],
+  ["navy", "#001f3f"],
+  ["blue", "#0074d9"],
+  ["aqua", "#7fdbff"],
+  ["teal", "#39cccc"],
+  ["eastern", "#239dad"],
+  ["purple", "#b10dc9"],
+  ["fuchsia", "#f012be"],
+  ["maroon", "#85144b"],
+  ["red", "#ff4136"],
+  ["orange", "#ff851b"],
+  ["yellow", "#ffdc00"],
+  ["olive", "#3d9970"],
+  ["green", "#2ecc40"],
+  ["lime", "#01ff70"],
+];
 
 interface Target {
   from: number;
@@ -202,6 +225,48 @@ export function insertCommands(host: Host) {
     // `snippet` indents following lines to match the first one.
     snippet(template)(view(), null, start, end);
     view().focus();
+  }
+
+  // ------------------------------------------------------------ Text color
+
+  let customColor = "#d6336c";
+
+  async function textColor() {
+    const { from } = view().state.selection.main;
+    const mode = await backend.modeAt(host.editor().text, from);
+    if (mode !== "markup") {
+      return host.notify(
+        mode === "math"
+          ? "To color an equation, select all of it, including the $ signs."
+          : "The cursor is in code. Select text in the document to color it.",
+        true,
+      );
+    }
+    let dialog: DialogHandle;
+    const apply = (color: string | null) => {
+      dialog.close();
+      run((s) => setTextColor(s, color));
+    };
+    const swatches = TEXT_COLORS.map(([name, value]) => {
+      const swatch = button("", () => apply(name), name);
+      swatch.style.background = value;
+      swatch.setAttribute("aria-label", name);
+      return swatch;
+    });
+    const custom = el("input", { type: "color", value: customColor });
+    custom.oninput = () => (customColor = custom.value);
+    dialog = openDialog({
+      title: "Text color",
+      body: [
+        el("div", { className: "swatches" }, swatches),
+        el("div", { className: "custom-color" }, [
+          el("label", {}, ["Custom ", custom]),
+          button("Use custom color", () => apply(`rgb("${customColor}")`)),
+        ]),
+        button("Remove color", () => apply(null)),
+      ],
+      onClose: () => view().focus(),
+    });
   }
 
   // ------------------------------------------------------------ Symbols
@@ -432,6 +497,7 @@ export function insertCommands(host: Host) {
     "edit-at-cursor": report(editAtCursor),
     citations: report(() => citations()),
     symbols: report(symbols),
+    "text-color": report(textColor),
     "paste-markdown": report(pasteMarkdown),
     "convert-markdown": report(convertSelection),
     "bullet-list": () => run((s) => toggleList(s, "bullet")),
